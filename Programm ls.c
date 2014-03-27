@@ -56,7 +56,8 @@ void ShowST_UID(uid_t st_uid)
     struct passwd* PASSWD = getpwuid(st_uid);
     char* user_name = PASSWD->pw_name;
 
-    printf("%s ", user_name);
+    if(user_name != NULL) printf("%s ", user_name);
+    else printf("- ");
 }
 
 void ShowST_GID(gid_t st_gid)
@@ -64,7 +65,8 @@ void ShowST_GID(gid_t st_gid)
     struct group* GROUP = getgrgid(st_gid);
     char* group_name = GROUP->gr_name;
 
-    printf("%s ", group_name);
+    if(group_name != NULL) printf("%s ", group_name);
+    else printf("- ");
 }
 
 void ShowST_SIZE(off_t st_size)

@@ -64,13 +64,13 @@ int ReadFile(int _fd, void* _buf, int _size)
     if(read_bytes == -1)
     {
         perror("Read file");
-        _exit(1);
+       return -1;
     }
 
     if( (read_bytes != _size) && (read(_fd, _buf, _size) != 0) )
     {
         perror("Read file");
-        _exit(1);
+        return -1;
     }
 
     return read_bytes;
@@ -83,10 +83,13 @@ void grep(char* file_name, char* str)
     // Проверка на корректность открытия файла
     int fd = open(file_name, O_RDONLY);
     if(fd == -1)
+    {
         perror("Open file");
+        exit(1);
+    }
 
     const int size = 1;         // Размер буфера
-    void* buf;                  // Буфер для считывания символов
+    char* buf;                  // Буфер для считывания символов
     char* StringBuffer;         // Буфер для хранения строки
     int read_bytes;             // Число прочитанных байтов
 
@@ -100,14 +103,13 @@ void grep(char* file_name, char* str)
     {
         read_bytes = ReadFile(fd, buf, size);
 
-        if(read_bytes == 0)
+        if( (read_bytes == 0) || (read_bytes == -1) )
             break;
 
-        char* symbol = buf;
-        char s = symbol[0];
+        char s = buf[0];
 
         // Если это не символ конца строки
-        if(s != 10)
+        if(s != '\n')
         {
             // Если буфер для хранения строки переполнен
             if(i == StringBuffer_size)
@@ -123,9 +125,11 @@ void grep(char* file_name, char* str)
         // Если это символ конца строки
         else
         {
+            StringBuffer[i] = '\0';
             if(StringSearch(StringBuffer, str) == 1)
                 printf("%s\n", StringBuffer);
 
+            free(StringBuffer);
             StringBuffer = malloc(StringBuffer_size);
             i = 0;
         }
@@ -157,26 +161,28 @@ void grep_l(char* dir_name, char* str)
     for(;;)
     {
         _dirent = readdir(_dir);
-        if(_dirent == NULL)
+
+        if(_dirent != NULL)
         {
-            closedir(_dir);
-            break;
+            name = _dirent->d_name;
+
+            // Проверка на вхождение подстроки
+            if(StringSearch(name, str) == 1)
+                printf("%s\n", name);
         }
-
-        name = _dirent->d_name;
-
-        // Проверка на вхождение подстроки
-        if(StringSearch(name, str) == 1)
-            printf("%s\n", name);
+        else
+            break;
     }
+
+    closedir(_dir);
 }
 
 //-------------------------------------------------------------------------------------
 
 int main(int argc, char** argv)
 {
-    // grep file_name string
-    // grep -l directory string
+    // grep файл подстрока
+    // grep -l директория подстрока
 
     // Проверка на корректность числа аргументов
     if( (argc != 3) && (argc != 4) )

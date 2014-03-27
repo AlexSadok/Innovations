@@ -26,13 +26,13 @@ int ReadFile(int _fd, void* _buf, int _size)
     if(read_bytes == -1)
     {
         perror("Read file");
-        _exit(1);
+        return -1;
     }
 
     if( (read_bytes != _size) && (read(_fd, _buf, _size) != 0) )
     {
         perror("Read file");
-        _exit(1);
+        return -1;
     }
 
     return read_bytes;
@@ -46,13 +46,13 @@ int WriteFile(int _fd, void* _buf, int _size)
     if(write_bytes == -1)
     {
         perror("Write file");
-        _exit(1);
+        return -1;
     }
 
     if(write_bytes != _size)
     {
         perror("Write file");
-        _exit(1);
+        return -1;
     }
 
     return write_bytes;
@@ -64,6 +64,7 @@ void CopyFileContent(int fd1, int fd2)
     const int size = 20;        // Размер буфера
     void* buf;                  // Буфер
     int read_bytes;             // Текущее число считанных байтов
+    int write_bytes;            // Текущее число записанных байтов
 
     buf = malloc(size);
 
@@ -71,10 +72,13 @@ void CopyFileContent(int fd1, int fd2)
     {
         read_bytes = ReadFile(fd1, buf, size);
 
-        if(read_bytes == 0)
+        if( (read_bytes == 0) || (read_bytes == -1) )
             break;
 
-        WriteFile(fd2, buf, read_bytes);
+        write_bytes = WriteFile(fd2, buf, read_bytes);
+
+        if(write_bytes == -1)
+            break;
     }
 
     free(buf);
@@ -97,14 +101,6 @@ int IsDirectory(char* file_name)
         return 1;
 
     return 0;
-}
-
-// Проверка на возможность считать файл
-int CanBeOpened(char* file_name)
-{
-    struct stat buf;
-
-    return stat(file_name, &buf);
 }
 
 //------------------------------------------------------------------
@@ -136,11 +132,8 @@ int CreateCopyFile(char* file1_name, char* file2_name)
 }
 
 // Формирование пути создаваемого файла
-char* CreatePath(char* _argv1, char* _argv2, int _IsDir)
+char* CreatePath(char* _argv1, char* _argv2, int _IsDir, char* _Destination)
 {
-    char* _Destination;
-    _Destination = malloc(MAX_PATH_LENGTH);
-
     // Выделяем из полного имени файла название файла
     int length = strlen(_argv1);
     int size = length;
@@ -207,17 +200,17 @@ void Copy(int argc, char** argv)
         fd1 = open(argv[i], O_RDONLY);
 
         // Если текущий файл не удалось открыть
-        if( (fd1 == -1) || (CanBeOpened(argv[i]) == -1) )
+        if(fd1 == -1)
             printf("Error: Open file %d\n", i);
 
         // Если текущий файл удалось открыть
         else
         {
-            char* Destination;              // Адрес файла для копирования
-            Destination = malloc(MAX_PATH_LENGTH);
+            // Адрес файла для копирования
+            char* Destination = malloc(MAX_PATH_LENGTH);
 
             // Формирование адреса
-            strcpy(Destination, CreatePath(argv[i], argv[argc - 1], IsDir) );
+            CreatePath(argv[i], argv[argc - 1], IsDir, Destination);
 
             fd2 = CreateCopyFile(argv[i], Destination);
 
@@ -228,9 +221,7 @@ void Copy(int argc, char** argv)
                 _exit(1);
             }
             else
-            {
                 CopyFileContent(fd1, fd2);
-            }
 
             free(Destination);
         }
@@ -355,13 +346,14 @@ void Copy_R(int argc, char** argv)
     if( (IsDirectory(argv[argc - 1]) == 0) || (IsDirectory(argv[argc - 2]) == 0) )
     {
         perror("File is not a directory");
-        _exit(1);
     }
+    else
+    {
+        char* dir1 = argv[argc - 2];
+        char* dir2 = argv[argc - 1];
 
-    char* dir1 = argv[argc - 2];
-    char* dir2 = argv[argc - 1];
-
-    CopyDir(dir1, dir2);
+        CopyDir(dir1, dir2);
+    }
 }
 
 //------------------------------------------------------------------
