@@ -6,6 +6,7 @@
 #include <assert.h>
 
 #include <pthread.h>
+#include <time.h>
 
 #define PHILOS 5
 #define FOOD 100
@@ -55,6 +56,10 @@ int main (int argc, char **argv)
 
 void* philosopher (void *num)
 {
+    struct timeval Start;
+    struct timeval End;
+    long Sum_Wait_Time;
+
     int id;
     int left_chopstick, right_chopstick;
 
@@ -70,11 +75,12 @@ void* philosopher (void *num)
         left_chopstick = 0;
 
     int f;
+    int sleep_time;
 
     // Пока не закончилась еда
     while (f = food_on_table ())
     {
-        int sleep_time;
+        gettimeofday(&Start, NULL);
 
         srand(time(NULL));
         sleep_time = 100000 * (rand() % 5 + 1);
@@ -86,13 +92,20 @@ void* philosopher (void *num)
         grab_chopstick (id, left_chopstick, "left");
 
         printf ("Philosopher %d: eating.\n", id);
-
         down_chopsticks (left_chopstick, right_chopstick);
-
         return_token ();
+
+        gettimeofday(&End, NULL);
+
+        long wait_time = 1000000 * (End.tv_sec - Start.tv_sec) + (End.tv_usec - Start.tv_usec);
+        Sum_Wait_Time += wait_time;
+        printf("Philosopher %d: waited %ld ms.\n", id, wait_time);
     }
 
     printf ("Philosopher %d: finished eating.\n", id);
+
+    sleep(1);
+    printf ("Philosopher %d: summary waited %ld ms.\n", id, Sum_Wait_Time);
 
     return (NULL);
 }
@@ -161,5 +174,3 @@ void return_token ()
     num_can_eat++;
     pthread_mutex_unlock (&num_can_eat_lock);
 }
-
-//--------------------------------------------------------------------------------
