@@ -144,22 +144,23 @@ int main(int argc, char** argv)
         // Считываем числа и выводим на экран
         int number;
         char* TempBuf = malloc(sizeof(int));
+        int i = 0;
 
-        while(1)
+        // Общий размер буфера
+        int size = SHARED_MEMORY_SIZE / sizeof(int);
+
+        // Отображаем память
+        void* addr = mmap(0, SHARED_MEMORY_SIZE, PROT_WRITE | PROT_READ, MAP_SHARED, shm_buf, 0);
+
+        for(i = 0; i < size; ++i)
         {
             sem_wait(full_buf_sem);
             sem_wait(mutex_sem);
 
-            int ReadResult = read(shm_buf, TempBuf, sizeof(int));
+            memcpy( (int*)TempBuf, (int*)addr + i, sizeof(int) );
 
             sem_post(mutex_sem);
             sem_post(empty_buf_sem);
-
-            if(ReadResult == 0)
-            {
-                // БЛОКИРОВКА!!!
-                break;
-            }
 
             number = atoi(TempBuf);
             printf("read: %d\n", number);
